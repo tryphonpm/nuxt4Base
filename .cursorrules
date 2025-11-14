@@ -1,0 +1,184 @@
+# Règles du Projet Nuxt 4
+
+## Environnement
+- **Framework**: Nuxt 4 (latest)
+- **UI Library**: Nuxt UI (obligatoire)
+- **TypeScript**: Activé et préféré pour tous les fichiers
+- **Composition API**: Utiliser exclusivement la Composition API avec `<script setup>`
+
+## Composants UI - Nuxt UI (OBLIGATOIRE)
+
+### Règles strictes
+1. **TOUJOURS** utiliser les composants Nuxt UI pour l'interface utilisateur
+2. **INTERDICTION** de créer des composants personnalisés pour les éléments UI de base déjà disponibles dans Nuxt UI
+3. Consulter la documentation Nuxt UI avant de créer tout nouveau composant
+
+### Composants Nuxt UI à privilégier
+- **Boutons**: `<UButton>` au lieu de `<button>`
+- **Inputs**: `<UInput>`, `<UTextarea>`, `<USelect>`, etc.
+- **Formulaires**: `<UForm>`, `<UFormGroup>`
+- **Cartes**: `<UCard>`
+- **Modales**: `<UModal>`
+- **Notifications**: `<UNotification>`, utiliser `useToast()`
+- **Navigation**: `<UVerticalNavigation>`, `<UHorizontalNavigation>`
+- **Tables**: `<UTable>`
+- **Badges**: `<UBadge>`
+- **Avatars**: `<UAvatar>`
+- **Dropdown**: `<UDropdown>`
+- **Accordéon**: `<UAccordion>`
+- **Tabs**: `<UTabs>`
+- **Alert**: `<UAlert>`
+- **Skeleton**: `<USkeleton>` pour les états de chargement
+- **Container**: `<UContainer>` pour la mise en page
+- **Divider**: `<UDivider>`
+
+### Structure des pages
+```vue
+<script setup lang="ts">
+// Imports de Nuxt UI et composables
+// Logic TypeScript
+</script>
+
+<template>
+  <UContainer>
+    <!-- Utiliser uniquement des composants Nuxt UI -->
+  </UContainer>
+</template>
+```
+
+## Architecture Nuxt 4
+
+### Structure des dossiers
+- `app/pages/` - Pages avec routing automatique
+- `app/components/` - Composants auto-importés (seulement si non disponibles dans Nuxt UI)
+- `app/composables/` - Composables réutilisables
+- `app/layouts/` - Layouts de page
+- `app/middleware/` - Middleware de routing
+- `app/server/` - API routes et middleware serveur
+- `app/assets/` - Assets non compilés (CSS, images)
+- `public/` - Assets statiques servis directement
+
+### Auto-imports
+- Les composables, composants et utilitaires sont auto-importés
+- Pas besoin d'import explicite pour les composants Nuxt UI
+- Utiliser `definePageMeta()` pour les métadonnées de page
+
+### Composables Nuxt à utiliser
+- `useState()` pour l'état partagé
+- `useFetch()` ou `useAsyncData()` pour les données
+- `useRoute()` et `useRouter()` pour le routing
+- `useHead()` ou `useSeoMeta()` pour le SEO
+- `useToast()` pour les notifications (Nuxt UI)
+- `useColorMode()` pour le mode sombre (Nuxt UI)
+
+## Styling
+
+### Tailwind CSS (intégré avec Nuxt UI)
+- Utiliser **exclusivement** les classes Tailwind pour le styling
+- Respecter la configuration de thème Nuxt UI
+- Utiliser les tokens de couleur de Nuxt UI: `primary`, `gray`, `error`, `warning`, `success`, `info`
+- Mode sombre géré automatiquement via `dark:` classes
+
+### Personnalisation
+- Personnaliser les composants Nuxt UI via les props `ui` et `class`
+- Étendre la configuration dans `app.config.ts` pour les thèmes Nuxt UI
+- Éviter le CSS personnalisé autant que possible
+
+## Bonnes pratiques
+
+### TypeScript
+- Typer tous les props, events, et variables
+- Utiliser les interfaces pour les objets complexes
+- Exploiter les types générés automatiquement par Nuxt
+
+### Performance
+- Utiliser `<ClientOnly>` pour les composants client-only
+- Lazy-load les composants lourds avec `<LazyComponentName>`
+- Optimiser les images avec `<NuxtImg>` ou `<NuxtPicture>`
+
+### SEO
+- Définir `useHead()` ou `useSeoMeta()` sur chaque page
+- Utiliser `definePageMeta()` pour les métadonnées de routing
+
+### Accessibilité
+- Les composants Nuxt UI sont accessibles par défaut
+- Toujours fournir des labels appropriés
+- Tester la navigation au clavier
+
+## Validation des formulaires
+- Utiliser `<UForm>` avec validation via Zod ou Yup
+- Exemple:
+```vue
+<script setup lang="ts">
+import { z } from 'zod'
+
+const schema = z.object({
+  email: z.string().email('Email invalide'),
+  password: z.string().min(8, 'Minimum 8 caractères')
+})
+
+const state = reactive({
+  email: '',
+  password: ''
+})
+
+async function onSubmit() {
+  // Logique de soumission
+}
+</script>
+
+<template>
+  <UForm :schema="schema" :state="state" @submit="onSubmit">
+    <UFormGroup label="Email" name="email">
+      <UInput v-model="state.email" />
+    </UFormGroup>
+    
+    <UFormGroup label="Mot de passe" name="password">
+      <UInput v-model="state.password" type="password" />
+    </UFormGroup>
+    
+    <UButton type="submit">Connexion</UButton>
+  </UForm>
+</template>
+```
+
+## Gestion des erreurs
+- Utiliser `useToast()` pour les notifications d'erreur
+- Créer une page `app/error.vue` pour les erreurs globales
+- Gérer les erreurs avec `try/catch` dans les composables
+
+## API Routes (Server)
+- Créer les routes dans `app/server/api/`
+- Utiliser les event handlers de h3
+- Typer les réponses et requêtes
+
+## INTERDICTIONS
+
+❌ **NE JAMAIS**:
+- Créer des composants UI personnalisés si un équivalent existe dans Nuxt UI
+- Utiliser des balises HTML natives (`<button>`, `<input>`, etc.) au lieu des composants Nuxt UI
+- Ignorer TypeScript
+- Utiliser l'Options API
+- Utiliser des bibliothèques UI tierces (Bootstrap, Material UI, etc.)
+- Importer manuellement les composants Nuxt UI (ils sont auto-importés)
+
+## Commandes utiles
+```bash
+# Développement
+npm run dev
+
+# Build production
+npm run build
+
+# Prévisualisation production
+npm run preview
+
+# Génération statique
+npm run generate
+```
+
+## Ressources
+- [Documentation Nuxt 4](https://nuxt.com)
+- [Documentation Nuxt UI](https://ui.nuxt.com)
+- [Tailwind CSS](https://tailwindcss.com)
+

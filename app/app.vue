@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 useHead({
   meta: [
     { name: 'viewport', content: 'width=device-width, initial-scale=1' }
@@ -7,49 +7,51 @@ useHead({
     { rel: 'icon', href: '/favicon.ico' }
   ],
   htmlAttrs: {
-    lang: 'en'
+    lang: 'fr'
   }
 })
 
 const title = 'Tryphon Nuxt4 Base'
-const description = 'A production-ready starter template powered by Nuxt UI. Build beautiful, accessible, and performant applications in minutes, not hours.'
+const description = 'Base Nuxt 4 avec MongoDB et Nuxt UI - Outils personnels'
 
 useSeoMeta({
   title,
   description,
   ogTitle: title,
   ogDescription: description,
-  ogImage: 'https://ui.nuxt.com/assets/templates/nuxt/starter-light.png',
-  twitterImage: 'https://ui.nuxt.com/assets/templates/nuxt/starter-light.png',
   twitterCard: 'summary_large_image'
 })
 </script>
 
 <template>
-  <UApp>
-    <UMain>
+  <div class="min-h-screen flex flex-col">
+    <!-- Contenu principal -->
+    <div class="flex-1">
       <NuxtPage />
-    </UMain>
+    </div>
 
-    <USeparator icon="i-simple-icons-nuxtdotjs" />
+    <!-- Footer -->
+    <footer class="border-t border-gray-200 dark:border-gray-800 mt-16">
+      <UContainer class="py-8">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <UIcon name="i-simple-icons-nuxtdotjs" class="w-5 h-5 text-primary" />
+            <p class="text-sm text-gray-600 dark:text-gray-400">
+              Tryphon • © {{ new Date().getFullYear() }}
+            </p>
+          </div>
 
-    <UFooter>
-      <template #left>
-        <p class="text-sm text-muted">
-          Tryphon • © {{ new Date().getFullYear() }}
-        </p>
-      </template>
-
-      <template #right>
-        <UButton
-          to="https://github.com/tryphonpm/nuxt4Base"
-          target="_blank"
-          icon="i-simple-icons-github"
-          aria-label="GitHub"
-          color="neutral"
-          variant="ghost"
-        />
-      </template>
-    </UFooter>
-  </UApp>
+          <UButton
+            to="https://github.com/tryphonpm/nuxt4Base"
+            target="_blank"
+            icon="i-simple-icons-github"
+            aria-label="GitHub"
+            color="gray"
+            variant="ghost"
+            size="sm"
+          />
+        </div>
+      </UContainer>
+    </footer>
+  </div>
 </template>

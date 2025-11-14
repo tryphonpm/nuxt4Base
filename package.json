@@ -15,7 +15,9 @@
     "@nuxt/ui": "^4.1.0",
     "@pinia/nuxt": "^0.11.3",
     "mongodb": "^6.10.0",
-    "nuxt": "^4.2.0"
+    "mongoose": "^8.19.3",
+    "nuxt": "^4.2.0",
+    "nuxt-mongoose": "1.0.6"
   },
   "devDependencies": {
     "@types/node": "^24.10.0",
