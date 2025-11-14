@@ -7,7 +7,9 @@
     "dev": "nuxt dev",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
-    "postinstall": "nuxt prepare"
+    "postinstall": "nuxt prepare",
+    "split:pages": "node scripts/split_pages.js",
+    "import:pages": "node scripts/import_pages.js"
   },
   "dependencies": {
     "@iconify-json/lucide": "^1.2.71",

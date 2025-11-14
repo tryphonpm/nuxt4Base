@@ -27,6 +27,91 @@ const formState = reactive({
 // Indicateur de chargement pour l'ajout
 const isSubmitting = ref(false)
 
+// Référence pour l'input file
+const fileInputRef = ref<HTMLInputElement | null>(null)
+
+// Fonction pour importer un fichier .txt
+function importerFichier() {
+  fileInputRef.value?.click()
+}
+
+// Fonction pour traiter le fichier sélectionné
+async function handleFileUpload(event: Event) {
+  const target = event.target as HTMLInputElement
+  const file = target.files?.[0]
+  
+  if (!file) return
+
+  // Vérifier que c'est un fichier .txt
+  if (!file.name.endsWith('.txt')) {
+    toast.add({
+      title: 'Erreur',
+      description: 'Seuls les fichiers .txt sont acceptés',
+      color: 'error'
+    })
+    return
+  }
+
+  try {
+    const text = await file.text()
+    const lignes = text.split('\n')
+      .map(line => line.trimEnd()) // Enlever les espaces de fin mais garder les tabulations de début
+      .filter(line => line.length > 0) // Ignorer les lignes vides
+    
+    if (lignes.length === 0) {
+      toast.add({
+        title: 'Erreur',
+        description: 'Le fichier est vide',
+        color: 'error'
+      })
+      return
+    }
+
+    // Extraire le titre (première ligne)
+    const premiereLigne = lignes[0]
+    
+    // Remplir le titre si vide et prendre les lignes à partir de la 2ème
+    let lignesAImporter
+    if (!formState.titre && premiereLigne) {
+      formState.titre = premiereLigne.trim()
+      lignesAImporter = lignes.slice(1).filter(l => l.trim())
+    } else {
+      // Si le titre est déjà rempli, importer toutes les lignes
+      lignesAImporter = lignes.filter(l => l.trim())
+    }
+    
+    formState.lignes = lignesAImporter.map((ligne, index) => {
+      // Compter les tabulations au début
+      const match = ligne.match(/^(\t+)/)
+      const nbrTab = match?.[1]?.length || 0
+      // Enlever les tabulations ET espaces du début pour le texte
+      const texte = ligne.replace(/^[\t\s]+/, '')
+      
+      return {
+        index,
+        ligne: texte,
+        style: 'normal' as const,
+        nbrTab
+      }
+    })
+
+    toast.add({
+      title: 'Succès',
+      description: `Titre et ${formState.lignes.length} ligne${formState.lignes.length > 1 ? 's' : ''} importé${formState.lignes.length > 1 ? 's' : 'e'}`,
+      color: 'success'
+    })
+
+    // Réinitialiser l'input file
+    if (target) target.value = ''
+  } catch (err: any) {
+    toast.add({
+      title: 'Erreur',
+      description: 'Impossible de lire le fichier',
+      color: 'error'
+    })
+  }
+}
+
 // Fonction pour ajouter une ligne
 function ajouterLigne() {
   const nouvelIndex = formState.lignes.length
@@ -198,16 +283,45 @@ function getLineStyle(ligne: ILigne) {
       <!-- Formulaire d'ajout -->
       <UCard>
         <div class="space-y-6">
-          <!-- Titre -->
-          <UFormField label="Titre de l'écrit" required>
-            <UInput
-              v-model="formState.titre"
-              placeholder="Entrez le titre"
-              size="lg"
-              :disabled="isSubmitting"
-              class="w-full"
+          <!-- Titre avec bouton Import -->
+          <div class="space-y-2">
+            <UFormField label="Titre de l'écrit" required>
+              <div class="flex gap-3">
+                <UInput
+                  v-model="formState.titre"
+                  placeholder="Entrez le titre"
+                  size="lg"
+                  :disabled="isSubmitting"
+                  class="flex-1"
+                />
+                <UButton
+                  @click="importerFichier"
+                  icon="i-lucide-file-text"
+                  color="neutral"
+                  variant="outline"
+                  size="lg"
+                  :disabled="isSubmitting"
+                >
+                  Importer .txt
+                </UButton>
+              </div>
+            </UFormField>
+            
+            <!-- Input file caché -->
+            <input
+              ref="fileInputRef"
+              type="file"
+              accept=".txt"
+              @change="handleFileUpload"
+              class="hidden"
             />
-          </UFormField>
+            
+            <!-- Message d'info pour l'import -->
+            <p class="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
+              <UIcon name="i-lucide-info" class="w-3 h-3" />
+              Importez un fichier .txt pour remplir automatiquement les lignes et le titre (les tabulations seront préservées)
+            </p>
+          </div>
 
           <!-- Section des lignes (affichée seulement si le titre est renseigné) -->
           <div v-if="formState.titre" class="space-y-6">
