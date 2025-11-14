@@ -22,8 +22,11 @@ interface ApiResponse {
 // État pour les écrits
 const { data: ecritsData, refresh: refreshEcrits, pending } = await useFetch<ApiResponse>('/api/ecrits')
 
-// Computed pour obtenir la liste des écrits
-const ecrits = computed(() => ecritsData.value?.data || [])
+// Computed pour obtenir la liste des écrits triés par index
+const ecrits = computed(() => {
+  const data = ecritsData.value?.data || []
+  return data.slice().sort((a, b) => (a.index || 0) - (b.index || 0))
+})
 
 // État pour l'écrit sélectionné (visualisation)
 const selectedEcrit = ref<IEcrit | null>(null)
@@ -170,6 +173,10 @@ function getLineStyle(ligne: ILigne) {
                 <h3 class="text-lg font-semibold mb-2">{{ ecrit.titre }}</h3>
                 <div class="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
                   <div class="flex items-center gap-1">
+                    <UIcon name="i-lucide-hash" class="w-4 h-4" />
+                    <span>Index: {{ ecrit.index }}</span>
+                  </div>
+                  <div class="flex items-center gap-1">
                     <UIcon name="i-lucide-align-left" class="w-4 h-4" />
                     <span>{{ ecrit.lignes.length }} ligne{{ ecrit.lignes.length > 1 ? 's' : '' }}</span>
                   </div>
@@ -241,8 +248,15 @@ function getLineStyle(ligne: ILigne) {
         </template>
 
         <div class="space-y-4">
-          <div class="text-sm text-gray-500 dark:text-gray-400">
-            Créé le {{ formatDate(selectedEcrit.createdAt!) }}
+          <div class="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
+            <div class="flex items-center gap-1">
+              <UIcon name="i-lucide-hash" class="w-4 h-4" />
+              <span>Index: {{ selectedEcrit.index }}</span>
+            </div>
+            <div class="flex items-center gap-1">
+              <UIcon name="i-lucide-calendar" class="w-4 h-4" />
+              <span>Créé le {{ formatDate(selectedEcrit.createdAt!) }}</span>
+            </div>
           </div>
 
           <div class="border-t border-gray-200 dark:border-gray-800"></div>

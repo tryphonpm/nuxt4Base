@@ -19,6 +19,7 @@ const styleOptions = ['normal', 'italique', 'gras', 'citation', 'code']
 // État du formulaire
 const formState = reactive({
   titre: '',
+  index: 1, // Index de l'écrit (éditable manuellement)
   lignes: [
     { index: 0, ligne: '', style: 'normal' as const, nbrTab: 0 }
   ]
@@ -215,6 +216,7 @@ async function ajouterEcrit() {
       method: 'POST',
       body: {
         titre: formState.titre,
+        index: formState.index,
         lignes: formState.lignes
       }
     })
@@ -231,6 +233,7 @@ async function ajouterEcrit() {
 
     // Réinitialiser le formulaire
     formState.titre = ''
+    formState.index = 1
     formState.lignes = [{ index: 0, ligne: '', style: 'normal', nbrTab: 0 }]
 
     // Rediriger vers la liste
@@ -321,6 +324,20 @@ function getLineStyle(ligne: ILigne) {
               <UIcon name="i-lucide-info" class="w-3 h-3" />
               Importez un fichier .txt pour remplir automatiquement les lignes et le titre (les tabulations seront préservées)
             </p>
+          </div>
+
+          <!-- Index de l'écrit -->
+          <div v-if="formState.titre">
+            <UFormField label="Index de l'écrit" help="Utilisé pour trier les écrits dans la liste (éditable manuellement)">
+              <UInput
+                v-model.number="formState.index"
+                type="number"
+                :min="0"
+                :disabled="isSubmitting"
+                size="lg"
+                class="w-48"
+              />
+            </UFormField>
           </div>
 
           <!-- Section des lignes (affichée seulement si le titre est renseigné) -->

@@ -32,6 +32,7 @@ export default defineEventHandler(async (event) => {
       id,
       {
         titre: body.titre,
+        index: body.index || body.lignes.length,
         lignes: lignesSorted,
         updatedAt: new Date(),
       },

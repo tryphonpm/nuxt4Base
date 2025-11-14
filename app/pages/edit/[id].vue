@@ -25,6 +25,7 @@ const { data: ecritData, pending, error: loadError } = await useFetch(`/api/ecri
 // État du formulaire
 const formState = reactive({
   titre: '',
+  index: 0,
   lignes: [] as ILigne[]
 })
 
@@ -32,6 +33,7 @@ const formState = reactive({
 watch(() => ecritData.value, (newData) => {
   if (newData?.data) {
     formState.titre = newData.data.titre
+    formState.index = newData.data.index || newData.data.lignes.length
     formState.lignes = newData.data.lignes.map(l => ({ ...l }))
   }
 }, { immediate: true })
@@ -149,6 +151,7 @@ async function mettreAJourEcrit() {
       method: 'PUT',
       body: {
         titre: formState.titre,
+        index: formState.index,
         lignes: formState.lignes
       }
     })
@@ -266,6 +269,18 @@ function getLineStyle(ligne: ILigne) {
               size="lg"
               :disabled="isSubmitting"
               class="w-full"
+            />
+          </UFormField>
+
+          <!-- Index de l'écrit -->
+          <UFormField label="Index de l'écrit" help="Utilisé pour trier les écrits dans la liste (éditable manuellement)">
+            <UInput
+              v-model.number="formState.index"
+              type="number"
+              :min="0"
+              :disabled="isSubmitting"
+              size="lg"
+              class="w-48"
             />
           </UFormField>
 

@@ -8,6 +8,11 @@ export const Ecrit = defineMongooseModel({
       type: String,
       required: true,
     },
+    index: {
+      type: Number,
+      required: true,
+      default: 0,
+    },
     lignes: [{
       index: {
         type: Number,
@@ -54,6 +59,7 @@ export interface ILigne {
 export interface IEcrit {
   _id?: string
   titre: string
+  index: number
   lignes: ILigne[]
   createdAt?: Date
   updatedAt?: Date

@@ -43,6 +43,7 @@ Devient :
 ```javascript
 {
   titre: "L'excuse de la girafe",
+  index: 9,  // Index incrémental (1, 2, 3, 4, ...)
   lignes: [
     { index: 0, ligne: "Une guerrière lourde...", style: "normal", nbrTab: 0 },
     { index: 1, ligne: "qui réitère un défilé...", style: "normal", nbrTab: 1 },
@@ -76,10 +77,10 @@ Devient :
 
 🚀 Début de l'import...
 
-✅ page_09.txt - "L'excuse de la girafe" importé (61 lignes)
-✅ page_10.txt - "Sept lieues" importé (72 lignes)
+✅ page_09.txt - "L'excuse de la girafe" importé (index: 1, 61 lignes)
+✅ page_10.txt - "Sept lieues" importé (index: 2, 72 lignes)
 ⏭️  page_11.txt - "Le grand écart" existe déjà, ignoré
-✅ page_12.txt - "Colisée" importé (67 lignes)
+✅ page_12.txt - "Colisée" importé (index: 3, 67 lignes)
 ...
 
 ============================================================
@@ -99,10 +100,11 @@ Devient :
 ## 📝 Caractéristiques
 
 - ✅ **Import en masse** : Tous les fichiers .txt d'un coup
+- ✅ **Index incrémental** : Attribue automatiquement un index (1, 2, 3, ...) à chaque écrit
 - ✅ **Extraction intelligente** : Titre + lignes avec tabulations
 - ✅ **Gestion des doublons** : Ignore les titres existants
 - ✅ **Connexion sécurisée** : Utilise `.env` ou URI par défaut
-- ✅ **Logs détaillés** : Affiche chaque opération
+- ✅ **Logs détaillés** : Affiche chaque opération avec l'index attribué
 - ✅ **Résumé final** : Statistiques complètes
 - ✅ **Gestion d'erreurs** : Continue même en cas d'erreur sur un fichier
 

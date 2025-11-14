@@ -26,6 +26,7 @@ export default defineEventHandler(async (event) => {
     // Créer l'écrit
     const ecrit = await Ecrit.create({
       titre: body.titre,
+      index: body.index || body.lignes.length,
       lignes: lignesSorted,
       updatedAt: new Date(),
     })

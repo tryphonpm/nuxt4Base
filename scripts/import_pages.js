@@ -28,6 +28,7 @@ const ligneSchema = new mongoose.Schema({
 
 const ecritSchema = new mongoose.Schema({
   titre: { type: String, required: true },
+  index: { type: Number, required: true, default: 0 },
   lignes: { type: [ligneSchema], required: true },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now }
@@ -108,6 +109,7 @@ async function importerToutesCesPages() {
     let importes = 0
     let erreurs = 0
     let doublon = 0
+    let indexIncremental = 1  // Compteur pour l'index des écrits
 
     for (const fichier of fichiers) {
       const filePath = join(pagesDir, fichier)
@@ -131,9 +133,10 @@ async function importerToutesCesPages() {
           continue
         }
 
-        // Créer l'écrit dans MongoDB
+        // Créer l'écrit dans MongoDB avec index incrémental
         const nouvelEcrit = new Ecrit({
           titre: data.titre,
+          index: indexIncremental,
           lignes: data.lignes,
           createdAt: new Date(),
           updatedAt: new Date()
@@ -141,8 +144,9 @@ async function importerToutesCesPages() {
         
         await nouvelEcrit.save()
         
-        console.log(`✅ ${fichier} - "${data.titre}" importé (${data.lignes.length} lignes)`)
+        console.log(`✅ ${fichier} - "${data.titre}" importé (index: ${indexIncremental}, ${data.lignes.length} lignes)`)
         importes++
+        indexIncremental++  // Incrémenter pour le prochain écrit
         
       } catch (err) {
         console.error(`❌ ${fichier} - Erreur: ${err.message}`)
