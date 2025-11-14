@@ -1,30 +1,42 @@
 <script setup lang="ts">
-import type { ILigne } from '../../server/models/Ecrit'
+import type { ILigne } from '../../../server/models/Ecrit'
+
+const route = useRoute()
+const router = useRouter()
+const toast = useToast()
+
+// Récupérer l'ID depuis l'URL
+const ecritId = route.params.id as string
 
 // Gestion du SEO
 useHead({
-  title: 'Créer un écrit - Envoûtement',
+  title: 'Éditer un écrit - Envoûtement',
   meta: [
-    { name: 'description', content: 'Créer un nouvel écrit dans MongoDB' }
+    { name: 'description', content: 'Éditer un écrit dans MongoDB' }
   ]
 })
-
-// Toast pour les notifications
-const toast = useToast()
-const router = useRouter()
 
 // Options de style disponibles
 const styleOptions = ['normal', 'italique', 'gras', 'citation', 'code']
 
+// Charger l'écrit à éditer
+const { data: ecritData, pending, error: loadError } = await useFetch(`/api/ecrits/${ecritId}`)
+
 // État du formulaire
 const formState = reactive({
   titre: '',
-  lignes: [
-    { index: 0, ligne: '', style: 'normal' as const, nbrTab: 0 }
-  ]
+  lignes: [] as ILigne[]
 })
 
-// Indicateur de chargement pour l'ajout
+// Initialiser le formulaire avec les données chargées
+watch(() => ecritData.value, (newData) => {
+  if (newData?.data) {
+    formState.titre = newData.data.titre
+    formState.lignes = newData.data.lignes.map(l => ({ ...l }))
+  }
+}, { immediate: true })
+
+// Indicateur de chargement pour la mise à jour
 const isSubmitting = ref(false)
 
 // Fonction pour ajouter une ligne
@@ -103,9 +115,12 @@ function deplacerLigneBas(index: number) {
   }
 }
 
-// Fonction pour ajouter un écrit
-async function ajouterEcrit() {
-  if (!formState.titre) {
+// Fonction pour mettre à jour l'écrit - CORRECTION DU SUBMIT
+async function mettreAJourEcrit() {
+  console.log('🚀 Début de la mise à jour...')
+  
+  // Validation
+  if (!formState.titre.trim()) {
     toast.add({
       title: 'Erreur',
       description: 'Le titre est requis',
@@ -126,34 +141,36 @@ async function ajouterEcrit() {
 
   try {
     isSubmitting.value = true
-    const { error } = await useFetch('/api/ecrits', {
-      method: 'POST',
+    console.log('📤 Envoi de la requête PUT vers:', `/api/ecrits/${ecritId}`)
+    console.log('📦 Données:', { titre: formState.titre, lignes: formState.lignes })
+    
+    // Utilisation de $fetch avec la méthode PUT correcte
+    const response = await $fetch(`/api/ecrits/${ecritId}`, {
+      method: 'PUT',
       body: {
         titre: formState.titre,
         lignes: formState.lignes
       }
     })
 
-    if (error.value) {
-      throw new Error(error.value.data?.message || 'Erreur lors de l\'ajout')
-    }
+    console.log('✅ Réponse reçue:', response)
 
     toast.add({
       title: 'Succès',
-      description: 'Écrit ajouté avec succès',
+      description: 'Écrit mis à jour avec succès',
       color: 'success'
     })
 
-    // Réinitialiser le formulaire
-    formState.titre = ''
-    formState.lignes = [{ index: 0, ligne: '', style: 'normal', nbrTab: 0 }]
-
-    // Rediriger vers la liste
-    router.push('/liste')
+    // Retour à la liste après un court délai
+    setTimeout(() => {
+      router.push('/liste')
+    }, 500)
+    
   } catch (err: any) {
+    console.error('❌ Erreur lors de la mise à jour:', err)
     toast.add({
       title: 'Erreur',
-      description: err.message || 'Erreur lors de l\'ajout de l\'écrit',
+      description: err.data?.message || err.message || 'Erreur lors de la mise à jour',
       color: 'error'
     })
   } finally {
@@ -184,18 +201,61 @@ function getLineStyle(ligne: ILigne) {
 
 <template>
   <UContainer class="py-8">
-    <div class="space-y-8">
-      <!-- En-tête -->
+    <!-- Loader pendant le chargement -->
+    <div v-if="pending" class="space-y-4">
+      <USkeleton class="h-12" />
+      <USkeleton class="h-64" />
+      <USkeleton class="h-32" />
+    </div>
+
+    <!-- Erreur de chargement -->
+    <UAlert
+      v-else-if="loadError"
+      icon="i-lucide-alert-circle"
+      color="error"
+      title="Erreur de chargement"
+      description="Impossible de charger l'écrit. Vérifiez que l'ID est correct."
+      class="mb-8"
+    >
+      <template #actions>
+        <UButton to="/liste" color="neutral" variant="outline">
+          Retour à la liste
+        </UButton>
+      </template>
+    </UAlert>
+
+    <!-- Formulaire d'édition -->
+    <div v-else-if="formState.titre" class="space-y-8">
+      <!-- En-tête avec breadcrumb -->
       <div>
-        <h1 class="text-3xl font-bold">Créer un écrit</h1>
-        <p class="mt-2 text-gray-500 dark:text-gray-400">
-          Ajoutez un nouvel écrit à votre collection
-        </p>
+        <div class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-4">
+          <NuxtLink to="/" class="hover:text-primary">Accueil</NuxtLink>
+          <UIcon name="i-lucide-chevron-right" class="w-4 h-4" />
+          <NuxtLink to="/liste" class="hover:text-primary">Liste des écrits</NuxtLink>
+          <UIcon name="i-lucide-chevron-right" class="w-4 h-4" />
+          <span>Éditer</span>
+        </div>
+        <div class="flex items-center justify-between">
+          <div>
+            <h1 class="text-3xl font-bold">Éditer l'écrit</h1>
+            <p class="mt-2 text-gray-500 dark:text-gray-400">
+              Modifiez les informations de votre écrit
+            </p>
+          </div>
+          <UButton
+            to="/liste"
+            icon="i-lucide-arrow-left"
+            color="neutral"
+            variant="outline"
+          >
+            Retour
+          </UButton>
+        </div>
       </div>
 
       <div class="border-t border-gray-200 dark:border-gray-800"></div>
 
-      <!-- Formulaire d'ajout -->
+      <!-- Formulaire -->
       <UCard>
         <div class="space-y-6">
           <!-- Titre -->
@@ -209,27 +269,25 @@ function getLineStyle(ligne: ILigne) {
             />
           </UFormField>
 
-          <!-- Section des lignes (affichée seulement si le titre est renseigné) -->
-          <div v-if="formState.titre" class="space-y-6">
-            <div class="relative">
-              <div class="absolute inset-0 flex items-center" aria-hidden="true">
-                <div class="w-full border-t border-gray-200 dark:border-gray-800"></div>
-              </div>
-              <div class="relative flex justify-center">
-                <span class="bg-white dark:bg-gray-950 px-2 text-sm text-gray-500 dark:text-gray-400">Lignes</span>
-              </div>
+          <div class="relative">
+            <div class="absolute inset-0 flex items-center" aria-hidden="true">
+              <div class="w-full border-t border-gray-200 dark:border-gray-800"></div>
             </div>
+            <div class="relative flex justify-center">
+              <span class="bg-white dark:bg-gray-950 px-2 text-sm text-gray-500 dark:text-gray-400">Lignes de l'écrit</span>
+            </div>
+          </div>
 
-            <!-- Lignes dynamiques -->
-            <div class="space-y-4">
+          <!-- Lignes dynamiques -->
+          <div class="space-y-4">
             <div
               v-for="(ligne, index) in formState.lignes"
               :key="index"
-              class="p-4 border border-gray-200 dark:border-gray-700 rounded-lg space-y-3"
+              class="p-4 border border-gray-200 dark:border-gray-700 rounded-lg space-y-3 hover:border-primary/50 transition-colors"
             >
               <div class="flex items-center justify-between">
                 <div class="flex items-center gap-2">
-                  <UBadge color="neutral" variant="soft">
+                  <UBadge color="primary" variant="soft">
                     Ligne {{ index + 1 }}
                   </UBadge>
                   
@@ -274,7 +332,7 @@ function getLineStyle(ligne: ILigne) {
                   v-model="ligne.ligne"
                   placeholder="Entrez le texte de la ligne"
                   :disabled="isSubmitting"
-                  :rows="2"
+                  :rows="3"
                   class="w-full"
                 />
               </UFormField>
@@ -309,40 +367,76 @@ function getLineStyle(ligne: ILigne) {
               </div>
 
               <!-- Prévisualisation -->
-              <div class="mt-2 p-3 bg-gray-50 dark:bg-gray-900 rounded">
-                <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">Prévisualisation :</p>
+              <div class="mt-2 p-3 bg-gray-50 dark:bg-gray-900 rounded border border-gray-200 dark:border-gray-800">
+                <p class="text-xs text-gray-500 dark:text-gray-400 mb-2 flex items-center gap-1">
+                  <UIcon name="i-lucide-eye" class="w-3 h-3" />
+                  Prévisualisation
+                </p>
                 <p :style="getLineStyle(ligne)" class="text-sm">
                   {{ ligne.ligne || 'Aucun texte...' }}
                 </p>
               </div>
             </div>
-            </div>
+          </div>
 
-            <!-- Boutons d'action -->
-            <div class="flex justify-between">
+          <!-- Bouton ajouter une ligne -->
+          <UButton
+            @click="ajouterLigne"
+            icon="i-lucide-plus"
+            color="primary"
+            variant="outline"
+            :disabled="isSubmitting"
+            block
+          >
+            Ajouter une ligne
+          </UButton>
+        </div>
+      </UCard>
+
+      <!-- Boutons d'action en bas -->
+      <UCard>
+        <div class="flex justify-between items-center">
+          <p class="text-sm text-gray-500 dark:text-gray-400">
+            {{ formState.lignes.length }} ligne{{ formState.lignes.length > 1 ? 's' : '' }} • Écrit ID: {{ ecritId }}
+          </p>
+          <div class="flex gap-3">
             <UButton
-              @click="ajouterLigne"
-              icon="i-lucide-plus"
+              to="/liste"
               color="neutral"
               variant="outline"
               :disabled="isSubmitting"
+              icon="i-lucide-x"
             >
-              Ajouter une ligne
+              Annuler
             </UButton>
-
             <UButton
-              @click="ajouterEcrit"
+              @click="mettreAJourEcrit"
               :loading="isSubmitting"
               size="lg"
               icon="i-lucide-save"
+              color="primary"
             >
-              Enregistrer l'écrit
+              {{ isSubmitting ? 'Enregistrement...' : 'Enregistrer les modifications' }}
             </UButton>
-            </div>
           </div>
         </div>
       </UCard>
     </div>
+
+    <!-- Cas où l'écrit n'a pas été trouvé -->
+    <UAlert
+      v-else
+      icon="i-lucide-alert-circle"
+      color="error"
+      title="Écrit introuvable"
+      description="L'écrit que vous essayez de modifier n'existe pas ou n'a pas pu être chargé."
+    >
+      <template #actions>
+        <UButton to="/liste" color="neutral" variant="outline">
+          Retour à la liste
+        </UButton>
+      </template>
+    </UAlert>
   </UContainer>
 </template>
 

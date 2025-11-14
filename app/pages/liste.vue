@@ -182,10 +182,19 @@ function getLineStyle(ligne: ILigne) {
 
               <div class="flex gap-2">
                 <UButton
+                  :to="`/edit/${ecrit._id}`"
+                  icon="i-lucide-pencil"
+                  size="sm"
+                  color="primary"
+                  variant="ghost"
+                >
+                  Éditer
+                </UButton>
+                <UButton
                   @click="visualiserEcrit(ecrit)"
                   icon="i-lucide-eye"
                   size="sm"
-                  color="primary"
+                  color="neutral"
                   variant="ghost"
                 >
                   Voir
