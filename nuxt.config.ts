@@ -9,7 +9,7 @@ export default defineNuxtConfig({
     preference: 'dark'
   },
   mongoose: {
-    uri: process.env.MONGODB_URI,
+    uri: process.env.MONGODB_URI || 'mongodb://localhost:27017/envoutement',
     options: {},
     modelsDir: 'server/models',
     devtools: true
