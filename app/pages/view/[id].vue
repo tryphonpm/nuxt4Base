@@ -3,6 +3,7 @@ import type { IEcrit, ILigne } from '../../../server/models/Ecrit'
 
 const route = useRoute()
 const router = useRouter()
+const toast = useToast()
 
 // Récupérer l'ID depuis l'URL
 const ecritId = route.params.id as string
@@ -16,10 +17,13 @@ useHead({
 })
 
 // Charger l'écrit à visualiser
-const { data: ecritData, pending, error: loadError } = await useFetch<{ success: boolean, data: IEcrit }>(`/api/ecrits/${ecritId}`)
+const { data: ecritData, pending, error: loadError, refresh } = await useFetch<{ success: boolean, data: IEcrit }>(`/api/ecrits/${ecritId}`)
 
 // Obtenir l'écrit
 const ecrit = computed(() => ecritData.value?.data || null)
+
+// État pour suivre les mises à jour en cours
+const isUpdating = ref(false)
 
 // Formater la date
 function formatDate(date: Date | string) {
@@ -49,6 +53,63 @@ function getLineStyle(ligne: ILigne) {
       return { ...styles, fontFamily: 'monospace', backgroundColor: '#f3f4f6', padding: '0.25rem 0.5rem', borderRadius: '0.25rem' }
     default:
       return styles
+  }
+}
+
+// Modifier le nombre de tabulations d'une ligne
+async function modifierTabulation(ligneIndex: number, delta: number) {
+  if (!ecrit.value) return
+  
+  const ligneOriginale = ecrit.value.lignes[ligneIndex]
+  if (!ligneOriginale) return
+  
+  const nouvelleTabulation = (ligneOriginale.nbrTab || 0) + delta
+  
+  // Vérifier que la tabulation reste dans les limites acceptables
+  if (nouvelleTabulation < 0 || nouvelleTabulation > 10) {
+    toast.add({
+      title: 'Attention',
+      description: 'Le nombre de tabulations doit être entre 0 et 10',
+      color: 'warning'
+    })
+    return
+  }
+  
+  // Créer une copie des lignes avec la modification
+  const nouvellesLignes = ecrit.value.lignes.map((ligne, idx) => 
+    idx === ligneIndex 
+      ? { ...ligne, nbrTab: nouvelleTabulation }
+      : ligne
+  )
+  
+  try {
+    isUpdating.value = true
+    
+    await $fetch(`/api/ecrits/${ecritId}`, {
+      method: 'PUT',
+      body: {
+        titre: ecrit.value.titre,
+        index: ecrit.value.index,
+        lignes: nouvellesLignes
+      }
+    })
+    
+    // Rafraîchir les données
+    await refresh()
+    
+    toast.add({
+      title: 'Succès',
+      description: 'Tabulation modifiée avec succès',
+      color: 'success'
+    })
+  } catch (err: any) {
+    toast.add({
+      title: 'Erreur',
+      description: err.message || 'Erreur lors de la mise à jour',
+      color: 'error'
+    })
+  } finally {
+    isUpdating.value = false
   }
 }
 </script>
@@ -141,34 +202,51 @@ function getLineStyle(ligne: ILigne) {
           <div
             v-for="(ligne, index) in ecrit.lignes"
             :key="index"
-            class="py-3 hover:bg-gray-50 dark:hover:bg-gray-900/50 transition-colors rounded-lg px-3 -mx-3"
+            class="py-1 hover:bg-gray-50 dark:hover:bg-gray-900/50 transition-colors rounded-lg px-3 -mx-3"
           >
             <div class="flex items-start gap-3">
-              <UBadge color="neutral" variant="soft" size="sm" class="mt-1 min-w-[3rem] justify-center">
+              <UBadge color="neutral" variant="soft" size="sm" class="mt-1 min-w-[3rem] justify-center flex-shrink-0">
                 {{ index + 1 }}
               </UBadge>
-              <div class="flex-1">
+              <div class="flex-1 min-w-0">
                 <p :style="getLineStyle(ligne)" class="text-base leading-relaxed">
                   {{ ligne.ligne }}
                 </p>
-                <div v-if="ligne.style !== 'normal' || ligne.nbrTab > 0" class="flex items-center gap-2 mt-2">
+                <div v-if="ligne.style !== 'normal'" class="mt-2">
                   <UBadge
-                    v-if="ligne.style !== 'normal'"
                     color="primary"
                     variant="soft"
                     size="xs"
                   >
                     {{ ligne.style }}
                   </UBadge>
-                  <UBadge
-                    v-if="ligne.nbrTab > 0"
-                    color="neutral"
-                    variant="soft"
-                    size="xs"
-                  >
-                    {{ ligne.nbrTab }} tab{{ ligne.nbrTab > 1 ? 's' : '' }}
-                  </UBadge>
                 </div>
+              </div>
+              
+              <!-- Contrôles de tabulation alignés à droite -->
+              <div class="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 rounded-md px-2 py-1 flex-shrink-0 mt-1">
+                <UButton
+                  @click="modifierTabulation(index, -1)"
+                  :disabled="ligne.nbrTab === 0 || isUpdating"
+                  icon="i-lucide-minus"
+                  size="xs"
+                  color="neutral"
+                  variant="ghost"
+                  class="h-2 w-6"
+                />
+                <span class="text-xs font-medium min-w-[3rem] text-center">
+                  <UIcon name="i-lucide-indent" class="w-3 h-3 inline" />
+                  {{ ligne.nbrTab }}
+                </span>
+                <UButton
+                  @click="modifierTabulation(index, 1)"
+                  :disabled="ligne.nbrTab >= 10 || isUpdating"
+                  icon="i-lucide-plus"
+                  size="xs"
+                  color="neutral"
+                  variant="ghost"
+                  class="h-6 w-6"
+                />
               </div>
             </div>
           </div>
