@@ -25,6 +25,15 @@ const ecrit = computed(() => ecritData.value?.data || null)
 // État pour suivre les mises à jour en cours
 const isUpdating = ref(false)
 
+// États pour les zones de drag & drop
+const isDraggingLettrine = ref(false)
+const isDraggingVisuel = ref(false)
+const isUploadingImage = ref(false)
+
+// Références pour les inputs fichiers
+const lettrineinput = ref<HTMLInputElement | null>(null)
+const visuelinput = ref<HTMLInputElement | null>(null)
+
 // Formater la date
 function formatDate(date: Date | string) {
   return new Date(date).toLocaleDateString('fr-FR', {
@@ -112,6 +121,179 @@ async function modifierTabulation(ligneIndex: number, delta: number) {
     isUpdating.value = false
   }
 }
+
+// Convertir un fichier en base64
+function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.readAsDataURL(file)
+    reader.onload = () => resolve(reader.result as string)
+    reader.onerror = error => reject(error)
+  })
+}
+
+// Valider la taille du fichier (5Mo max)
+function validateFileSize(file: File): boolean {
+  const maxSize = 5 * 1024 * 1024 // 5Mo en bytes
+  return file.size <= maxSize
+}
+
+// Upload d'image (lettrine ou visuel)
+async function uploadImage(file: File, type: 'lettrine' | 'visuel') {
+  if (!ecrit.value) return
+  
+  // Vérifier le type de fichier
+  if (!file.type.startsWith('image/')) {
+    toast.add({
+      title: 'Erreur',
+      description: 'Le fichier doit être une image',
+      color: 'error'
+    })
+    return
+  }
+  
+  // Vérifier la taille
+  if (!validateFileSize(file)) {
+    toast.add({
+      title: 'Erreur',
+      description: 'L\'image ne doit pas dépasser 5Mo',
+      color: 'error'
+    })
+    return
+  }
+  
+  try {
+    isUploadingImage.value = true
+    
+    // Convertir en base64
+    const base64 = await fileToBase64(file)
+    
+    // Mettre à jour l'écrit
+    const updateData: any = {
+      titre: ecrit.value.titre,
+      index: ecrit.value.index,
+      lignes: ecrit.value.lignes
+    }
+    
+    if (type === 'lettrine') {
+      updateData.lettrine = base64
+    } else {
+      updateData.visuel = base64
+    }
+    
+    await $fetch(`/api/ecrits/${ecritId}`, {
+      method: 'PUT',
+      body: updateData
+    })
+    
+    // Rafraîchir les données
+    await refresh()
+    
+    toast.add({
+      title: 'Succès',
+      description: `${type === 'lettrine' ? 'Lettrine' : 'Visuel'} ajouté avec succès`,
+      color: 'success'
+    })
+  } catch (err: any) {
+    toast.add({
+      title: 'Erreur',
+      description: err.message || 'Erreur lors de l\'upload',
+      color: 'error'
+    })
+  } finally {
+    isUploadingImage.value = false
+  }
+}
+
+// Supprimer une image
+async function removeImage(type: 'lettrine' | 'visuel') {
+  if (!ecrit.value) return
+  
+  try {
+    isUploadingImage.value = true
+    
+    const updateData: any = {
+      titre: ecrit.value.titre,
+      index: ecrit.value.index,
+      lignes: ecrit.value.lignes
+    }
+    
+    if (type === 'lettrine') {
+      updateData.lettrine = null
+    } else {
+      updateData.visuel = null
+    }
+    
+    await $fetch(`/api/ecrits/${ecritId}`, {
+      method: 'PUT',
+      body: updateData
+    })
+    
+    // Rafraîchir les données
+    await refresh()
+    
+    toast.add({
+      title: 'Succès',
+      description: `${type === 'lettrine' ? 'Lettrine' : 'Visuel'} supprimé avec succès`,
+      color: 'success'
+    })
+  } catch (err: any) {
+    toast.add({
+      title: 'Erreur',
+      description: err.message || 'Erreur lors de la suppression',
+      color: 'error'
+    })
+  } finally {
+    isUploadingImage.value = false
+  }
+}
+
+// Gérer le drop d'un fichier
+function handleDrop(event: DragEvent, type: 'lettrine' | 'visuel') {
+  event.preventDefault()
+  
+  if (type === 'lettrine') {
+    isDraggingLettrine.value = false
+  } else {
+    isDraggingVisuel.value = false
+  }
+  
+  const file = event.dataTransfer?.files[0]
+  if (file) {
+    uploadImage(file, type)
+  }
+}
+
+// Gérer le drag over
+function handleDragOver(event: DragEvent, type: 'lettrine' | 'visuel') {
+  event.preventDefault()
+  
+  if (type === 'lettrine') {
+    isDraggingLettrine.value = true
+  } else {
+    isDraggingVisuel.value = true
+  }
+}
+
+// Gérer le drag leave
+function handleDragLeave(type: 'lettrine' | 'visuel') {
+  if (type === 'lettrine') {
+    isDraggingLettrine.value = false
+  } else {
+    isDraggingVisuel.value = false
+  }
+}
+
+// Gérer le clic pour sélectionner un fichier
+function handleFileSelect(event: Event, type: 'lettrine' | 'visuel') {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (file) {
+    uploadImage(file, type)
+  }
+  // Réinitialiser l'input pour permettre de sélectionner le même fichier
+  input.value = ''
+}
 </script>
 
 <template>
@@ -188,6 +370,172 @@ async function modifierTabulation(ligneIndex: number, delta: number) {
       </div>
 
       <div class="border-t border-gray-200 dark:border-gray-800"></div>
+
+      <!-- Images (Lettrine et Visuel) -->
+      <UCard>
+        <template #header>
+          <div class="flex items-center gap-2">
+            <UIcon name="i-lucide-image" class="w-5 h-5 text-primary" />
+            <h2 class="text-xl font-semibold">Images</h2>
+          </div>
+        </template>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <!-- Lettrine -->
+          <div class="space-y-3">
+            <div class="flex items-center justify-between">
+              <label class="text-sm font-medium">Lettrine</label>
+              <UButton
+                v-if="ecrit.lettrine"
+                @click="removeImage('lettrine')"
+                :disabled="isUploadingImage"
+                icon="i-lucide-trash-2"
+                size="xs"
+                color="error"
+                variant="ghost"
+              >
+                Supprimer
+              </UButton>
+            </div>
+            
+            <!-- Zone de drop si pas d'image -->
+            <div
+              v-if="!ecrit.lettrine"
+              @drop="(e) => handleDrop(e, 'lettrine')"
+              @dragover="(e) => handleDragOver(e, 'lettrine')"
+              @dragleave="() => handleDragLeave('lettrine')"
+              @click="() => lettrineinput?.click()"
+              :class="[
+                'relative border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-all',
+                isDraggingLettrine 
+                  ? 'border-primary bg-primary/10 scale-105' 
+                  : 'border-gray-300 dark:border-gray-700 hover:border-primary/50'
+              ]"
+            >
+              <input
+                ref="lettrineinput"
+                type="file"
+                accept="image/*"
+                class="hidden"
+                @change="(e) => handleFileSelect(e, 'lettrine')"
+              />
+              <div class="space-y-2">
+                <UIcon 
+                  name="i-lucide-upload" 
+                  class="w-12 h-12 mx-auto"
+                  :class="isDraggingLettrine ? 'text-primary' : 'text-gray-400'"
+                />
+                <p class="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  {{ isDraggingLettrine ? 'Déposez l\'image ici' : 'Glissez une image ou cliquez' }}
+                </p>
+                <p class="text-xs text-gray-500 dark:text-gray-400">
+                  PNG, JPG, GIF jusqu'à 5Mo
+                </p>
+              </div>
+              <div v-if="isUploadingImage" class="absolute inset-0 bg-white/80 dark:bg-gray-900/80 flex items-center justify-center rounded-lg">
+                <USkeleton class="h-8 w-8 rounded-full" />
+              </div>
+            </div>
+
+            <!-- Affichage de l'image si présente -->
+            <div v-else class="relative group">
+              <img 
+                :src="ecrit.lettrine" 
+                alt="Lettrine"
+                class="w-full h-auto rounded-lg border border-gray-200 dark:border-gray-700"
+              />
+              <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
+                <UButton
+                  @click="removeImage('lettrine')"
+                  :disabled="isUploadingImage"
+                  icon="i-lucide-trash-2"
+                  size="lg"
+                  color="error"
+                >
+                  Supprimer
+                </UButton>
+              </div>
+            </div>
+          </div>
+
+          <!-- Visuel -->
+          <div class="space-y-3">
+            <div class="flex items-center justify-between">
+              <label class="text-sm font-medium">Visuel</label>
+              <UButton
+                v-if="ecrit.visuel"
+                @click="removeImage('visuel')"
+                :disabled="isUploadingImage"
+                icon="i-lucide-trash-2"
+                size="xs"
+                color="error"
+                variant="ghost"
+              >
+                Supprimer
+              </UButton>
+            </div>
+            
+            <!-- Zone de drop si pas d'image -->
+            <div
+              v-if="!ecrit.visuel"
+              @drop="(e) => handleDrop(e, 'visuel')"
+              @dragover="(e) => handleDragOver(e, 'visuel')"
+              @dragleave="() => handleDragLeave('visuel')"
+              @click="() => visuelinput?.click()"
+              :class="[
+                'relative border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-all',
+                isDraggingVisuel 
+                  ? 'border-primary bg-primary/10 scale-105' 
+                  : 'border-gray-300 dark:border-gray-700 hover:border-primary/50'
+              ]"
+            >
+              <input
+                ref="visuelinput"
+                type="file"
+                accept="image/*"
+                class="hidden"
+                @change="(e) => handleFileSelect(e, 'visuel')"
+              />
+              <div class="space-y-2">
+                <UIcon 
+                  name="i-lucide-upload" 
+                  class="w-12 h-12 mx-auto"
+                  :class="isDraggingVisuel ? 'text-primary' : 'text-gray-400'"
+                />
+                <p class="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  {{ isDraggingVisuel ? 'Déposez l\'image ici' : 'Glissez une image ou cliquez' }}
+                </p>
+                <p class="text-xs text-gray-500 dark:text-gray-400">
+                  PNG, JPG, GIF jusqu'à 5Mo
+                </p>
+              </div>
+              <div v-if="isUploadingImage" class="absolute inset-0 bg-white/80 dark:bg-gray-900/80 flex items-center justify-center rounded-lg">
+                <USkeleton class="h-8 w-8 rounded-full" />
+              </div>
+            </div>
+
+            <!-- Affichage de l'image si présente -->
+            <div v-else class="relative group">
+              <img 
+                :src="ecrit.visuel" 
+                alt="Visuel"
+                class="w-full h-auto rounded-lg border border-gray-200 dark:border-gray-700"
+              />
+              <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
+                <UButton
+                  @click="removeImage('visuel')"
+                  :disabled="isUploadingImage"
+                  icon="i-lucide-trash-2"
+                  size="lg"
+                  color="error"
+                >
+                  Supprimer
+                </UButton>
+              </div>
+            </div>
+          </div>
+        </div>
+      </UCard>
 
       <!-- Contenu de l'écrit -->
       <UCard>

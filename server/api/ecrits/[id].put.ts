@@ -28,14 +28,24 @@ export default defineEventHandler(async (event) => {
     const lignesSorted = body.lignes.sort((a: any, b: any) => a.index - b.index)
 
     // Mettre à jour l'écrit
+    const updateData: any = {
+      titre: body.titre,
+      index: body.index || body.lignes.length,
+      lignes: lignesSorted,
+      updatedAt: new Date(),
+    }
+
+    // Ajouter lettrine et visuel si présents
+    if (body.lettrine !== undefined) {
+      updateData.lettrine = body.lettrine
+    }
+    if (body.visuel !== undefined) {
+      updateData.visuel = body.visuel
+    }
+
     const ecrit = await Ecrit.findByIdAndUpdate(
       id,
-      {
-        titre: body.titre,
-        index: body.index || body.lignes.length,
-        lignes: lignesSorted,
-        updatedAt: new Date(),
-      },
+      updateData,
       { new: true } // Retourner le document mis à jour
     )
 
