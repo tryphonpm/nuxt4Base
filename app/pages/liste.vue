@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { IEcrit, ILigne } from '../../server/models/Ecrit'
+import type { IEcrit } from '../../server/models/Ecrit'
 
 // Gestion du SEO
 useHead({
@@ -27,16 +27,6 @@ const ecrits = computed(() => {
   const data = ecritsData.value?.data || []
   return data.slice().sort((a, b) => (a.index || 0) - (b.index || 0))
 })
-
-// État pour l'écrit sélectionné (visualisation)
-const selectedEcrit = ref<IEcrit | null>(null)
-const isViewModalOpen = ref(false)
-
-// Fonction pour visualiser un écrit
-function visualiserEcrit(ecrit: IEcrit) {
-  selectedEcrit.value = ecrit
-  isViewModalOpen.value = true
-}
 
 // Fonction pour supprimer un écrit
 async function supprimerEcrit(id: string) {
@@ -74,26 +64,6 @@ function formatDate(date: Date | string) {
     hour: '2-digit',
     minute: '2-digit'
   })
-}
-
-// Obtenir le style CSS pour une ligne
-function getLineStyle(ligne: ILigne) {
-  const styles: any = {
-    paddingLeft: `${ligne.nbrTab * 2}rem`
-  }
-  
-  switch (ligne.style) {
-    case 'italique':
-      return { ...styles, fontStyle: 'italic' }
-    case 'gras':
-      return { ...styles, fontWeight: 'bold' }
-    case 'citation':
-      return { ...styles, fontStyle: 'italic', color: '#6b7280', borderLeft: '3px solid #9ca3af', paddingLeft: `${ligne.nbrTab * 2 + 1}rem` }
-    case 'code':
-      return { ...styles, fontFamily: 'monospace', backgroundColor: '#f3f4f6', padding: '0.25rem 0.5rem', borderRadius: '0.25rem' }
-    default:
-      return styles
-  }
 }
 </script>
 
@@ -166,7 +136,7 @@ function getLineStyle(ligne: ILigne) {
           <UCard
             v-for="ecrit in ecrits"
             :key="ecrit._id"
-            class="p-4"
+            class="p-0 m-0"
           >
             <div class="flex items-start justify-between gap-4">
               <div class="flex-1 min-w-0">
@@ -198,7 +168,7 @@ function getLineStyle(ligne: ILigne) {
                   Éditer
                 </UButton>
                 <UButton
-                  @click="visualiserEcrit(ecrit)"
+                  :to="`/view/${ecrit._id}`"
                   icon="i-lucide-eye"
                   size="sm"
                   color="neutral"
@@ -230,63 +200,5 @@ function getLineStyle(ligne: ILigne) {
         description="Base de données 'envoutement' • Collection 'ecrits' • Assurez-vous que MongoDB est démarré"
       />
     </div>
-
-    <!-- Modal de visualisation -->
-    <UModal v-model="isViewModalOpen" v-if="selectedEcrit">
-      <UCard class="sm:max-w-3xl">
-        <template #header>
-          <div class="flex items-center justify-between">
-            <h3 class="text-xl font-semibold">{{ selectedEcrit.titre }}</h3>
-            <UButton
-              @click="isViewModalOpen = false"
-              icon="i-lucide-x"
-              size="sm"
-              color="neutral"
-              variant="ghost"
-            />
-          </div>
-        </template>
-
-        <div class="space-y-4">
-          <div class="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
-            <div class="flex items-center gap-1">
-              <UIcon name="i-lucide-hash" class="w-4 h-4" />
-              <span>Index: {{ selectedEcrit.index }}</span>
-            </div>
-            <div class="flex items-center gap-1">
-              <UIcon name="i-lucide-calendar" class="w-4 h-4" />
-              <span>Créé le {{ formatDate(selectedEcrit.createdAt!) }}</span>
-            </div>
-          </div>
-
-          <div class="border-t border-gray-200 dark:border-gray-800"></div>
-
-          <div class="space-y-3 max-h-96 overflow-y-auto">
-            <div
-              v-for="(ligne, index) in selectedEcrit.lignes"
-              :key="index"
-              class="py-2"
-            >
-              <div class="flex items-start gap-2">
-                <UBadge color="neutral" size="xs" class="mt-1">{{ index + 1 }}</UBadge>
-                <p :style="getLineStyle(ligne)" class="flex-1">
-                  {{ ligne.ligne }}
-                </p>
-                <UBadge
-                  v-if="ligne.style !== 'normal'"
-                  color="primary"
-                  variant="soft"
-                  size="xs"
-                  class="mt-1"
-                >
-                  {{ ligne.style }}
-                </UBadge>
-              </div>
-            </div>
-          </div>
-        </div>
-      </UCard>
-    </UModal>
   </UContainer>
 </template>
-
