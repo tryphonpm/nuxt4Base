@@ -200,11 +200,12 @@ async function ajouterEcrit() {
     return
   }
 
-  const lignesVides = formState.lignes.filter(l => !l.ligne.trim())
-  if (lignesVides.length > 0) {
+  // Vérifier qu'au moins une ligne contient du texte
+  const lignesAvecTexte = formState.lignes.filter(l => l.ligne.trim())
+  if (lignesAvecTexte.length === 0) {
     toast.add({
       title: 'Erreur',
-      description: 'Toutes les lignes doivent contenir du texte',
+      description: 'Au moins une ligne doit contenir du texte',
       color: 'error'
     })
     return

@@ -30,7 +30,8 @@ export const Ecrit = defineMongooseModel({
       },
       ligne: {
         type: String,
-        required: true,
+        required: false,
+        default: '',
       },
       style: {
         type: String,

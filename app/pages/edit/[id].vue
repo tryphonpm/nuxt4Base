@@ -117,6 +117,30 @@ function deplacerLigneBas(index: number) {
   }
 }
 
+// Fonction pour insérer une ligne vierge après une ligne spécifique
+function insererLigneApres(index: number) {
+  const nouvelleLigne = {
+    index: index + 1,
+    ligne: '',
+    style: 'normal' as const,
+    nbrTab: 0
+  }
+  
+  // Insérer la nouvelle ligne après l'index spécifié
+  formState.lignes.splice(index + 1, 0, nouvelleLigne)
+  
+  // Réindexer toutes les lignes
+  formState.lignes.forEach((ligne, idx) => {
+    ligne.index = idx
+  })
+  
+  toast.add({
+    title: 'Ligne ajoutée',
+    description: 'Une nouvelle ligne vide a été insérée',
+    color: 'success'
+  })
+}
+
 // Fonction pour mettre à jour l'écrit - CORRECTION DU SUBMIT
 async function mettreAJourEcrit() {
   console.log('🚀 Début de la mise à jour...')
@@ -131,11 +155,12 @@ async function mettreAJourEcrit() {
     return
   }
 
-  const lignesVides = formState.lignes.filter(l => !l.ligne.trim())
-  if (lignesVides.length > 0) {
+  // Vérifier qu'au moins une ligne contient du texte
+  const lignesAvecTexte = formState.lignes.filter(l => l.ligne.trim())
+  if (lignesAvecTexte.length === 0) {
     toast.add({
       title: 'Erreur',
-      description: 'Toutes les lignes doivent contenir du texte',
+      description: 'Au moins une ligne doit contenir du texte',
       color: 'error'
     })
     return
@@ -295,11 +320,8 @@ function getLineStyle(ligne: ILigne) {
 
           <!-- Lignes dynamiques -->
           <div class="space-y-4">
-            <div
-              v-for="(ligne, index) in formState.lignes"
-              :key="index"
-              class="p-4 border border-gray-200 dark:border-gray-700 rounded-lg space-y-3 hover:border-primary/50 transition-colors"
-            >
+            <template v-for="(ligne, index) in formState.lignes" :key="index">
+              <div class="p-4 border border-gray-200 dark:border-gray-700 rounded-lg space-y-3 hover:border-primary/50 transition-colors">
               <div class="flex items-center justify-between">
                 <div class="flex items-center gap-2">
                   <UBadge color="primary" variant="soft">
@@ -391,7 +413,23 @@ function getLineStyle(ligne: ILigne) {
                   {{ ligne.ligne || 'Aucun texte...' }}
                 </p>
               </div>
-            </div>
+              </div>
+
+              <!-- Bouton pour insérer une ligne vierge après cette ligne -->
+              <div v-if="index < formState.lignes.length - 1" class="flex justify-center -my-2">
+                <UButton
+                  @click="insererLigneApres(index)"
+                  :disabled="isSubmitting"
+                  icon="i-lucide-plus-circle"
+                  size="xs"
+                  color="primary"
+                  variant="soft"
+                  class="shadow-sm"
+                >
+                  Insérer une ligne vide
+                </UButton>
+              </div>
+            </template>
           </div>
 
           <!-- Bouton ajouter une ligne -->

@@ -168,6 +168,15 @@ function formatDate(date: Date | string) {
                   Éditer
                 </UButton>
                 <UButton
+                  :to="`/print/${ecrit._id}`"
+                  icon="i-lucide-printer"
+                  size="sm"
+                  color="neutral"
+                  variant="ghost"
+                >
+                  Imprimer
+                </UButton>
+                <UButton
                   :to="`/view/${ecrit._id}`"
                   icon="i-lucide-eye"
                   size="sm"
